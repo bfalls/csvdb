@@ -35,25 +35,30 @@ function icsvdbProcessMetadata($hdrs) {
 
 # csvdbCreateTable - writes the csvdb header in a new file
 function csvdbCreateTable($fn, $schema) {
-    if (file_exists($fn)) {
+    if (is_file($fn)) {
         return array('code'=>409, 'value'=>'Table \'' . $fn . '\' already exists.');
     }
     $hdr = array('      1');
     foreach($schema as $col) {
-        $col = $name = $col['name'];
-        $constraint = $col['constraint']; # NOT NULL, DEFAULT, UNIQUE
-        if ($constraint) {
+        if (! array_key_exists('name', $col)) {
+            return array('code'=>500, 'value'=>'Invalid schema.');
+        }
+        $colname = $name = $col['name'];
+        if (array_key_exists('constraint', $col)) {
+            $constraint = $col['constraint']; # NOT NULL, DEFAULT, UNIQUE
             if ($constraint !== 'NOT NULL' || 
                 $constraint !== 'UNIQUE' ||
                 substr($constraint, 0, 8) !== 'DEFAULT ') {
-                return array('code'=>409, 'value'=>'Table \'' . $fn . '\' already exists.');
+                return array('code'=>500, 'value'=>'Invalid constraint.');
             }
-            $col .= ';' . $constraint;
+            $colname .= ';' . $constraint;
         }
-        $hdr[] = $col;
+        $hdr[] = $colname;
     }
     $f = fopen($fn, 'w');
+    flock($f, LOCK_EX);
     fputcsv($f, $hdr);
+    flock($f, LOCK_UN);
 	fclose($f);
 }
 
