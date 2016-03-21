@@ -43,20 +43,25 @@ function csvdbCreateTable($fn, $schema) {
     }
     $hdr = array('      1');
     foreach($schema as $col) {
+        if (! array_key_exists('name', $col)) {
+            return array('code'=>500, 'value'=>'Invalid schema.');
+        }
         $colname = $name = $col['name'];
         if (array_key_exists('constraint', $col)) {
             $constraint = $col['constraint']; # NOT NULL, DEFAULT, UNIQUE
             if (!($constraint === 'NOT NULL' || 
                 $constraint === 'UNIQUE' ||
                 substr($constraint, 0, 8) === 'DEFAULT ')) {
-                return array('code'=>400, 'value'=>'One of the request inputs is not valid. (' . $constraint . ')');
+                return array('code'=>400, 'value'=>'Invalid constraint. (' . $constraint . ')');
             }
             $colname .= ';' . $constraint;
         }
         $hdr[] = $colname;
     }
     $f = fopen($fn, 'w');
+    flock($f, LOCK_EX);
     fputcsv($f, $hdr);
+    flock($f, LOCK_UN);
 	fclose($f);
     return array('code'=>201, 'value'=>'');
 }
