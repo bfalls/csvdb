@@ -34,27 +34,31 @@ function icsvdbProcessMetadata($hdrs) {
 }
 
 # csvdbCreateTable - writes the csvdb header in a new file
+# param $fn the filename of the database
+# param $schema the array of fields
+# Example: csvdbCreateTable('table.csv', array(array('name'=>'street'),array('name'=>'zip','constraint'=>'NOT NULL')));
 function csvdbCreateTable($fn, $schema) {
-    if (file_exists($fn)) {
+    if (is_file($fn)) {
         return array('code'=>409, 'value'=>'Table \'' . $fn . '\' already exists.');
     }
     $hdr = array('      1');
     foreach($schema as $col) {
-        $col = $name = $col['name'];
-        $constraint = $col['constraint']; # NOT NULL, DEFAULT, UNIQUE
-        if ($constraint) {
-            if ($constraint !== 'NOT NULL' || 
-                $constraint !== 'UNIQUE' ||
-                substr($constraint, 0, 8) !== 'DEFAULT ') {
-                return array('code'=>409, 'value'=>'Table \'' . $fn . '\' already exists.');
+        $colname = $name = $col['name'];
+        if (array_key_exists('constraint', $col)) {
+            $constraint = $col['constraint']; # NOT NULL, DEFAULT, UNIQUE
+            if (!($constraint === 'NOT NULL' || 
+                $constraint === 'UNIQUE' ||
+                substr($constraint, 0, 8) === 'DEFAULT ')) {
+                return array('code'=>400, 'value'=>'One of the request inputs is not valid. (' . $constraint . ')');
             }
-            $col .= ';' . $constraint;
+            $colname .= ';' . $constraint;
         }
-        $hdr[] = $col;
+        $hdr[] = $colname;
     }
     $f = fopen($fn, 'w');
     fputcsv($f, $hdr);
 	fclose($f);
+    return array('code'=>201, 'value'=>'');
 }
 
 # csvdbAddRecord - adds a record to the end of the CSV file and
