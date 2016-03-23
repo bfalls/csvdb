@@ -38,6 +38,9 @@ function icsvdbProcessMetadata($hdrs) {
 # param $schema the array of fields
 # Example: csvdbCreateTable('table.csv', array(array('name'=>'street'),array('name'=>'zip','constraint'=>'NOT NULL')));
 function csvdbCreateTable($fn, $schema) {
+    if (gettype($schema) !== 'array' || count($schema) === 0) {
+        return array('code'=>500, 'value'=>'Invalid schema.');
+    }
     if (is_file($fn)) {
         return array('code'=>409, 'value'=>'Table \'' . $fn . '\' already exists.');
     }
@@ -64,6 +67,40 @@ function csvdbCreateTable($fn, $schema) {
     flock($f, LOCK_UN);
 	fclose($f);
     return array('code'=>201, 'value'=>'');
+}
+
+# csvdbSelect - selects records returning requested columns
+# with requested filters applied and in requested order.
+# Example:
+#   csvdbSelect('/file.csv', array('fname','lname'), array(array('fname','=','Jane')))) 
+function csvdbSelect($fn, $cols = null, $wheres = null)
+{
+	$f = fopen($fn, 'r');
+	flock($f, LOCK_EX); # append , 1) at the end????
+	$hdrs = fgetcsv($f);
+    $hdridxs = [];
+    $idx = 0;
+    foreach($hdrs as $hdr) {
+        $cnhdr = explode(';', $hdr);
+        if (in_array($cnhdr[0], $cols)) {
+            $hdridxs[] = $idx;
+        }
+        $idx++;
+    }
+    var_dump($hdridxs);
+    
+    $results = [];
+    // loop through the whole database; EXPENSIVE!!!
+    while (($row = fgetcsv($f)) !== false) {
+        var_dump($row);
+        foreach($hdridxs as $hdridx) {
+            $results[] = $row[$hdridx];
+        }
+    }
+    
+	flock($f, LOCK_UN);
+	fclose($f);
+    return array('code'=>200, 'value'=>$results);
 }
 
 # csvdbAddRecord - adds a record to the end of the CSV file and

@@ -10,9 +10,9 @@ class CsvDbTest extends PHPUnit_Framework_TestCase
         
     protected function tearDown()
     {
-        if (file_exists($this->filename)) {
-            unlink($this->filename);
-        }
+        // if (file_exists($this->filename)) {
+        //     unlink($this->filename);
+        // }
     }
     
     protected function setUp()
@@ -43,6 +43,28 @@ class CsvDbTest extends PHPUnit_Framework_TestCase
         $result = csvdbCreateTable($this->filename, array(array('name'=>'street'),array('noname'=>'zip','constraint'=>'BLAH')));
         $this->assertSame($result['code'], 500, $result['value']);
         $this->assertFileNotExists($this->filename);
+
+        // no schema
+        $result = csvdbCreateTable($this->filename, null);
+        $this->assertSame($result['code'], 500, $result['value']);
+        $this->assertFileNotExists($this->filename);
+        $result = csvdbCreateTable($this->filename, array());
+        $this->assertSame($result['code'], 500, $result['value']);
+        $this->assertFileNotExists($this->filename);
+    }
+
+    public function testSelect()
+    {
+        $result = csvdbCreateTable($this->filename, [['name'=>'fname'],['name'=>'lname'],['name'=>'zip']]);
+        $this->assertSame($result['code'], 201, $result['value']);
+        $this->assertFileExists($this->filename);
+        $result = csvdbAddRecord($this->filename, [['fname'=>'Barnaby'],['lname'=>'Falls'],['zip'=>'91234']]);
+        $this->assertSame($result['code'], 201, $result['value']);
+        $result = csvdbAddRecord($this->filename, [['fname'=>'Yulia'],['lname'=>'Falls'],['zip'=>'94321']]);
+        $this->assertSame($result['code'], 201, $result['value']);
+        $result = csvdbSelect($this->filename, ['fname']);
+        var_dump($result);
+        
     }
 }
 ?>
