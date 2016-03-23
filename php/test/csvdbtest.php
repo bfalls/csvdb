@@ -3,7 +3,6 @@
 // phpunit csvdbtest.php
 
 require '../csvdb.php';
-// require '../myTestFunction.php';
 
 class CsvDbTest extends PHPUnit_Framework_TestCase
 {
@@ -26,18 +25,23 @@ class CsvDbTest extends PHPUnit_Framework_TestCase
 
     public function testCreateTable()
     {
-        // $b = myTestFunction($filename, array(array('name'=>'street'),array('name'=>'zip','constraint'=>'NOT NULL')));
-        // $this->assertTrue($b);
         $result = csvdbCreateTable($this->filename, array(array('name'=>'street'),array('name'=>'zip','constraint'=>'NOT NULL')));
         $this->assertSame($result['code'], 201, $result['value']);
         $this->assertFileExists($this->filename);
 
+        // table already exists
         $result = csvdbCreateTable($this->filename, array(array('name'=>'street'),array('name'=>'zip','constraint'=>'NOT NULL')));
         $this->assertSame($result['code'], 409, $result['value']);
         $this->assertTrue(unlink($this->filename));
 
+        // bad constraint
         $result = csvdbCreateTable($this->filename, array(array('name'=>'street'),array('name'=>'zip','constraint'=>'BLAH')));
         $this->assertSame($result['code'], 400, $result['value']);
+        $this->assertFileNotExists($this->filename);
+        
+        // no name in schema field
+        $result = csvdbCreateTable($this->filename, array(array('name'=>'street'),array('noname'=>'zip','constraint'=>'BLAH')));
+        $this->assertSame($result['code'], 500, $result['value']);
         $this->assertFileNotExists($this->filename);
     }
 }
