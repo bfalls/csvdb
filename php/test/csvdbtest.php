@@ -34,6 +34,11 @@ class CsvDbTest extends PHPUnit_Framework_TestCase
 
         $result = csvdbCreateTable($this->filename, array(array('name'=>'street'),array('name'=>'zip','constraint'=>'NOT NULL')));
         $this->assertSame($result['code'], 409, $result['value']);
+        $this->assertTrue(unlink($this->filename));
+
+        $result = csvdbCreateTable($this->filename, array(array('name'=>'street'),array('name'=>'zip','constraint'=>'BLAH')));
+        $this->assertSame($result['code'], 400, $result['value']);
+        $this->assertFileNotExists($this->filename);
     }
 }
 ?>
