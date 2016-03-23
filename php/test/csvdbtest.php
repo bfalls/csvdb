@@ -7,16 +7,32 @@ require '../csvdb.php';
 
 class CsvDbTest extends PHPUnit_Framework_TestCase
 {
+    protected $filename;
+        
+    protected function tearDown()
+    {
+        if (file_exists($this->filename)) {
+            unlink($this->filename);
+        }
+    }
+    
+    protected function setUp()
+    {
+        $this->filename = dirname(__FILE__) . '/test.csv';
+        if (file_exists($this->filename)) {
+            unlink($this->filename);
+        }
+    }
+
     public function testCreateTable()
     {
-        $filename = dirname(__FILE__) . '/test.csv';
         // $b = myTestFunction($filename, array(array('name'=>'street'),array('name'=>'zip','constraint'=>'NOT NULL')));
         // $this->assertTrue($b);
-        $result = csvdbCreateTable($filename, array(array('name'=>'street'),array('name'=>'zip','constraint'=>'NOT NULL')));
+        $result = csvdbCreateTable($this->filename, array(array('name'=>'street'),array('name'=>'zip','constraint'=>'NOT NULL')));
         $this->assertSame($result['code'], 201, $result['value']);
-        $this->assertFileExists($filename);
+        $this->assertFileExists($this->filename);
 
-        $result = csvdbCreateTable($filename, array(array('name'=>'street'),array('name'=>'zip','constraint'=>'NOT NULL')));
+        $result = csvdbCreateTable($this->filename, array(array('name'=>'street'),array('name'=>'zip','constraint'=>'NOT NULL')));
         $this->assertSame($result['code'], 409, $result['value']);
     }
 }
