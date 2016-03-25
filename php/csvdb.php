@@ -63,7 +63,7 @@ function csvdbCreateTable($fn, $schema) {
     }
     $f = fopen($fn, 'w');
     flock($f, LOCK_EX);
-    fputcsv($f, $hdr);
+    fwrite($f, implode(',', $hdr) . "\n");
     flock($f, LOCK_UN);
 	fclose($f);
     return array('code'=>201, 'value'=>'');
@@ -87,12 +87,10 @@ function csvdbSelect($fn, $cols = null, $wheres = null)
         }
         $idx++;
     }
-    var_dump($hdridxs);
     
     $results = [];
     // loop through the whole database; EXPENSIVE!!!
     while (($row = fgetcsv($f)) !== false) {
-        var_dump($row);
         foreach($hdridxs as $hdridx) {
             $results[] = $row[$hdridx];
         }
@@ -103,7 +101,7 @@ function csvdbSelect($fn, $cols = null, $wheres = null)
     return array('code'=>200, 'value'=>$results);
 }
 
-# csvdbAddRecord - adds a record to the end of the CSV file and
+# csvdbInsert - adds a record to the end of the CSV file and
 # updates the next record count.
 # Parameters:
 #   $fn - name of the CSV file
@@ -113,8 +111,8 @@ function csvdbSelect($fn, $cols = null, $wheres = null)
 # Returns:
 #   An HTTP response code. 201 Created on sucess, 409 Conflict on constraint failure
 # Example:
-#   csvdbAddRecord('/data/2013/file.csv', array('fname'=>'Bill','lname'=>'Smith'));
-function csvdbAddRecord($fn, $r)
+#   csvdbInsert('/data/2013/file.csv', array('fname'=>'Bill','lname'=>'Smith'));
+function csvdbInsert($fn, $r)
 {
 	# $r = array('key' => '4c', 'name' => 'test');
 	# $fn = 'divs.csv';
