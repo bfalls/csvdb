@@ -201,13 +201,7 @@ function csvdbInsert($fn, $r)
     # create new record
 	foreach($hdrnames as $hdr) { # loop in order of headers
         $fv = '';
-        foreach($r as $rval) { # find the key in $r
-            if ((array_keys($rval)[0]) == $hdr) {
-                $fv = $rval[$hdr];
-                break;
-            }
-        }
-		$newrec[] = $fv;
+        $newrec[] = $r[$hdr]; 
 	}
 
 	// write the next record id in header
