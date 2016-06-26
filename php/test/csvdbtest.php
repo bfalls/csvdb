@@ -51,6 +51,7 @@ class CsvDbTest extends PHPUnit_Framework_TestCase
         $result = csvdbCreateTable($this->filename, array());
         $this->assertSame($result['code'], 500, $result['value']);
         $this->assertFileNotExists($this->filename);
+        
     }
 
     public function testSelect()
@@ -62,8 +63,18 @@ class CsvDbTest extends PHPUnit_Framework_TestCase
         $this->assertSame($result['code'], 201, $result['value']);
         $result = csvdbAddRecord($this->filename, [['fname'=>'Yulia'],['lname'=>'Falls'],['zip'=>'94321']]);
         $this->assertSame($result['code'], 201, $result['value']);
-        $result = csvdbSelect($this->filename, ['fname']);
-        var_dump($result);
+        $result = csvdbSelect($this->filename, 2);
+        $this->assertSame($result['code'], 200, $result['value']);
+        $result = csvdbSelect($this->filename, 3202);
+        $this->assertSame($result['code'], 404, $result['value']);
+        $result = csvdbSelect($this->filename);
+        $this->assertSame($result['code'], 200, $result['value']);
+        $this->assertSame(count($result['value']), 2, $result['value']);
+
+        $result = csvdbDeleteRecord($this->filename, 2);
+        $this->assertSame($result['code'], 200, $result['value']);
+        $result = csvdbDeleteRecord($this->filename, 3202);
+        $this->assertSame($result['code'], 404, $result['value']);
         
     }
 }

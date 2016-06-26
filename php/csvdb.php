@@ -8,9 +8,13 @@
 #
 # The first data field is the record ID. It is always considered the
 # primary key.
-# The first header field is the next ID, when a new record is added this is
-# used as the record id and is incremented to the next id. 
+# The first header field is the 'next ID', when a new record is added this is
+# used as the record id and is incremented to the next ID.
+# The field name 'id' is the only reserved one, and it corresponds nicely with
+# the Backbone Model system for Javascript.   
 #
+# Selecting records can be done using a SQL style expression.
+# 
 # Note: If you pass in a record with a missing key then its value in the CSV
 # file will be empty.
 
@@ -71,37 +75,90 @@ function csvdbCreateTable($fn, $schema) {
 
 # csvdbSelect - selects records returning requested columns
 # with requested filters applied and in requested order.
+# For simplicity and to work well with RESTful systems like Backbone.js request
+# the record by 'id' and return the whole thing. If the 'id' argument is null
+# then the collection is returned.
 # Example:
 #   csvdbSelect('/file.csv', array('fname','lname'), array(array('fname','=','Jane')))) 
-function csvdbSelect($fn, $cols = null, $wheres = null)
+#   csvdbSelect('/file.csv', 12) => returns record with id==12 
+#   csvdbSelect('/file.csv') => returns the whole collection 
+function csvdbSelect($fn, $id = null)
 {
 	$f = fopen($fn, 'r');
 	flock($f, LOCK_EX); # append , 1) at the end????
 	$hdrs = fgetcsv($f);
-    $hdridxs = [];
+    $hdrnames = ['id'];
     $idx = 0;
     foreach($hdrs as $hdr) {
-        $cnhdr = explode(';', $hdr);
-        if (in_array($cnhdr[0], $cols)) {
-            $hdridxs[] = $idx;
+        if ($idx++ == 0) {
+            continue;
         }
-        $idx++;
+        $cnhdr = explode(';', $hdr);
+        $hdrnames[] = $cnhdr[0];
     }
-    var_dump($hdridxs);
     
     $results = [];
+    $found = false;
     // loop through the whole database; EXPENSIVE!!!
-    while (($row = fgetcsv($f)) !== false) {
-        var_dump($row);
-        foreach($hdridxs as $hdridx) {
-            $results[] = $row[$hdridx];
+    if ($id != null) {
+        while (($row = fgetcsv($f)) !== false) {
+            if ($row[0] == $id) {
+                $idx = 0;
+                foreach ($hdrnames as $hdr) {
+                    $results[$hdr] = $row[$idx++];
+                }
+                $found = true;
+                break;
+            }
+        }
+    } else {
+        while (($row = fgetcsv($f)) !== false) {
+            $idx = 0;
+            $r = [];
+            foreach ($hdrnames as $hdr) {
+                $r[$hdr] = $row[$idx++];
+            }
+            $results[] = $r;
         }
     }
     
 	flock($f, LOCK_UN);
 	fclose($f);
+    if (!$found && $id != null) {
+        return array('code'=>404, 'value'=>'Not Found');
+    }
     return array('code'=>200, 'value'=>$results);
 }
+
+// function csvdbSelect($fn, $cols = null, $wheres = null)
+// {
+// 	$f = fopen($fn, 'r');
+// 	flock($f, LOCK_EX); # append , 1) at the end????
+// 	$hdrs = fgetcsv($f);
+//     $hdridxs = [];
+//     $idx = 0;
+//     foreach($hdrs as $hdr) {
+//         $cnhdr = explode(';', $hdr);
+//         if (in_array($cnhdr[0], $cols)) {
+//             $hdridxs[] = $idx;
+//         }
+//         $idx++;
+//     }
+//     var_dump($hdridxs);
+    
+//     $results = [];
+//     // loop through the whole database; EXPENSIVE!!!
+//     while (($row = fgetcsv($f)) !== false) {
+//         var_dump($row);
+//         foreach($hdridxs as $hdridx) {
+//             $results[] = $row[$hdridx];
+//         }
+//     }
+    
+// 	flock($f, LOCK_UN);
+// 	fclose($f);
+//     return array('code'=>200, 'value'=>$results);
+// }
 
 # csvdbAddRecord - adds a record to the end of the CSV file and
 # updates the next record count.
@@ -143,11 +200,18 @@ function csvdbAddRecord($fn, $r)
     
     # create new record
 	foreach($hdrnames as $hdr) { # loop in order of headers
-		$newrec[] = $r[$hdr];
+        $fv = '';
+        foreach($r as $rval) { # find the key in $r
+            if ((array_keys($rval)[0]) == $hdr) {
+                $fv = $rval[$hdr];
+                break;
+            }
+        }
+		$newrec[] = $fv;
 	}
 
 	// write the next record id in header
-	fseek($f, 0, SEEK_SET);
+	fseek($f, 1, SEEK_SET);
 	fwrite($f, sprintf('%7u', $rn + 1));
 	fseek($f, 0, SEEK_END);
 	fputcsv($f, $newrec);
