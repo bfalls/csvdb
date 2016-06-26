@@ -59,9 +59,9 @@ class CsvDbTest extends PHPUnit_Framework_TestCase
         $result = csvdbCreateTable($this->filename, [['name'=>'fname'],['name'=>'lname'],['name'=>'zip']]);
         $this->assertSame($result['code'], 201, $result['value']);
         $this->assertFileExists($this->filename);
-        $result = csvdbAddRecord($this->filename, [['fname'=>'Barnaby'],['lname'=>'Falls'],['zip'=>'91234']]);
+        $result = csvdbInsert($this->filename, ['fname'=>'Barnaby','lname'=>'Falls','zip'=>'91234']);
         $this->assertSame($result['code'], 201, $result['value']);
-        $result = csvdbAddRecord($this->filename, [['fname'=>'Yulia'],['lname'=>'Falls'],['zip'=>'94321']]);
+        $result = csvdbInsert($this->filename, ['fname'=>'Yulia','lname'=>'Falls','zip'=>'94321']);
         $this->assertSame($result['code'], 201, $result['value']);
         $result = csvdbSelect($this->filename, 2);
         $this->assertSame($result['code'], 200, $result['value']);

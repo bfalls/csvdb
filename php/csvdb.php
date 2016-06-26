@@ -67,7 +67,7 @@ function csvdbCreateTable($fn, $schema) {
     }
     $f = fopen($fn, 'w');
     flock($f, LOCK_EX);
-    fputcsv($f, $hdr);
+    fwrite($f, implode(',', $hdr) . "\n");
     flock($f, LOCK_UN);
 	fclose($f);
     return array('code'=>201, 'value'=>'');
@@ -170,8 +170,8 @@ function csvdbSelect($fn, $id = null)
 # Returns:
 #   An HTTP response code. 201 Created on sucess, 409 Conflict on constraint failure
 # Example:
-#   csvdbAddRecord('/data/2013/file.csv', array('fname'=>'Bill','lname'=>'Smith'));
-function csvdbAddRecord($fn, $r)
+#   csvdbInsert('/data/2013/file.csv', array('fname'=>'Bill','lname'=>'Smith'));
+function csvdbInsert($fn, $r)
 {
 	# $r = array('key' => '4c', 'name' => 'test');
 	# $fn = 'divs.csv';
