@@ -48,7 +48,7 @@ function csvdbCreateTable($fn, $schema) {
     if (is_file($fn)) {
         return array('code'=>409, 'value'=>'Table \'' . $fn . '\' already exists.');
     }
-    $hdr = array('      1');
+    $hdr = array('"      1"');
     foreach($schema as $col) {
         if (! array_key_exists('name', $col)) {
             return array('code'=>500, 'value'=>'Invalid schema.');
@@ -214,15 +214,15 @@ function csvdbInsert($fn, $r)
     return array('code'=>201, 'value'=>$rn); // Created, and new ID
 }
 
-# csvdbUpdateRecord - updates a record in the CSV file.
+# csvdbUpdate - updates a record in the CSV file.
 # Parameters:
 #   $fn - name of the CSV file
 #   $r - record to be added
 # Only fields from the header in the file will be updated from the given
 # record
 # Example:
-#   csvdbUpdateRecord('/data/2013/file.csv', array('id'=>5,'fname'=>'Bill','lname'=>'Jones'));
-function csvdbUpdateRecord($fn, $r)
+#   csvdbUpdate('/data/2013/file.csv', array('id'=>5,'fname'=>'Bill','lname'=>'Jones'));
+function csvdbUpdate($fn, $r)
 {
 	$f = fopen($fn, 'r+');
 	flock($f, LOCK_EX); # append , 1) at the end????
@@ -239,24 +239,25 @@ function csvdbUpdateRecord($fn, $r)
     // check headers for constraints
     $mds = icsvdbProcessMetadata($hdrs);
     $hdrnames = $mds['headerNames'];
-    if ($mds['hasConstraints']) {
-        $uniqueIdxs = $mds['uniqueIndices'];
-        
-        // loop through the whole database; EXPENSIVE!!!
-        while (($row = fgetcsv($f)) !== false) {
-            if ($row[0] == $rid) { // don't test the record being replaced
-                $found = true;
-                $endpos = ftell($f); // EXPENSIVE!!!
-            } else { 
+    $hasConstraints = $mds['hasConstraints']; 
+    // loop through the whole database; EXPENSIVE!!!
+    while (($row = fgetcsv($f)) !== false) {
+        fwrite(STDERR, print_r($rid, TRUE));
+        if ($row[0] == $rid) { // don't test the record being replaced
+            $found = true;
+            $endpos = ftell($f); // EXPENSIVE!!!
+        } else {
+            if ($hasConstraints) {
+                $uniqueIdxs = $mds['uniqueIndices'];
                 foreach($uniqueIdxs as $uidx) { // check all UNIQUE constraints
                     if ($row[1+$uidx] == $r[$hdrnames[$uidx]]) {
                         $ierr = 'IntegrityError: UNIQUE constraint failed: ' . $hdrnames[$uidx];
                         break;
                     }
                 }
-                if (! $found) {
-                    $foundpos = ftell($f); // EXPENSIVE!!!
-                }
+            }
+            if (! $found) {
+                $foundpos = ftell($f); // EXPENSIVE!!!
             }
         }
     }
@@ -294,7 +295,7 @@ function csvdbUpdateRecord($fn, $r)
 
 	flock($f, LOCK_UN);
 	fclose($f);
-    return array('code'=>200, 'value'=>''); // Not Found
+    return array('code'=>200, 'value'=>''); // OK
 }
 
 # csvdbDeleteRecord - deletes a record in the CSV file.
